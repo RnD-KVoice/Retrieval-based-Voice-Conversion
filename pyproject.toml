@@ -30,8 +30,17 @@ fastapi = "^0.109.0"
 python-multipart = "^0.0.6"
 numba = "0.58.1"
 
+[tool.poetry.group.colab]
+optional = true
+
+[tool.poetry.group.colab.dependencies]
+pyngrok = "^7.0.0"
+ipywidgets = "^8.1.0"
+requests = "^2.31.0"
+
 [tool.poetry.extras]
 api = ["uvicorn", "fastapi"]
+colab = ["pyngrok", "ipywidgets", "requests"]
 
 [tool.poetry.scripts]
 rvc = "rvc.wrapper.cli.cli:main"

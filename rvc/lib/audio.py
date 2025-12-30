@@ -38,11 +38,14 @@ def audio2(i, o, format, sr):
     if format == "f32le":
         format = "pcm_f32le"
 
+    resampler = av.AudioResampler(format="fltp", layout="mono", rate=sr)
+
     ostream = out.add_stream(format)
     ostream.sample_rate = sr
 
     for frame in inp.decode(audio=0):
-        for p in ostream.encode(frame):
+        frame.pts = None
+        for p in ostream.encode(resampler.resample(frame)):
             out.mux(p)
 
     out.close()
@@ -58,10 +61,7 @@ def load_audio(file, sr):
         with open(file, "rb") as f:
             with BytesIO() as out:
                 audio2(f, out, "f32le", sr)
-                audio = np.frombuffer(out.getvalue(), np.float32)
-                if len(audio.shape) == 1 and (len(audio) // sr) > sr * 10:
-                    audio = audio.reshape(-1, 2).mean(axis=1)
-                return audio
+                return np.frombuffer(out.getvalue(), np.float32)
 
     except AttributeError:
         audio = file[1] / 32768.0

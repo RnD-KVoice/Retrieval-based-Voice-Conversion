@@ -56,24 +56,5 @@ def audio2(i, o, format, sr):
 
 
 def load_audio(file, sr):
-    print(f"[DEBUG] load_audio called with sr={sr}")
-    if not os.path.exists(file):
-        raise RuntimeError(
-            "You input a wrong audio path that does not exists, please fix it!"
-        )
-    try:
-        with open(file, "rb") as f:
-            with BytesIO() as out:
-                audio2(f, out, "f32le", sr)
-                audio = np.frombuffer(out.getvalue(), np.float32)
-                print(f"[DEBUG] audio.shape: {audio.shape}, duration: {len(audio)/sr:.2f}s")
-                return audio
-
-    except AttributeError:
-        audio = file[1] / 32768.0
-        if len(audio.shape) == 2:
-            audio = np.mean(audio, -1)
-        return librosa.resample(audio, orig_sr=file[0], target_sr=16000)
-
-    except Exception:
-        raise RuntimeError(traceback.format_exc())
+    audio, _ = librosa.load(file, sr=sr, mono=True)
+    return audio.astype(np.float32)

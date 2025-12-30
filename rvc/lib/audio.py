@@ -45,7 +45,9 @@ def audio2(i, o, format, sr):
 
     for frame in inp.decode(audio=0):
         frame.pts = None
-        for resampled_frame in resampler.resample(frame):
+        resampled = resampler.resample(frame)
+        print(f"[DEBUG] resampler.resample() returned type: {type(resampled)}, len: {len(resampled) if isinstance(resampled, list) else 'N/A'}")
+        for resampled_frame in resampled:
             for p in ostream.encode(resampled_frame):
                 out.mux(p)
 
@@ -62,7 +64,9 @@ def load_audio(file, sr):
         with open(file, "rb") as f:
             with BytesIO() as out:
                 audio2(f, out, "f32le", sr)
-                return np.frombuffer(out.getvalue(), np.float32)
+                audio = np.frombuffer(out.getvalue(), np.float32)
+                print(f"[DEBUG] audio.shape: {audio.shape}, duration: {len(audio)/sr:.2f}s")
+                return audio
 
     except AttributeError:
         audio = file[1] / 32768.0

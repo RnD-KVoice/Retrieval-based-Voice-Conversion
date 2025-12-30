@@ -1,6 +1,16 @@
 import os
+import torch
 
 from fairseq import checkpoint_utils
+
+_original_torch_load = torch.load
+
+def _torch_load_wrapper(*args, **kwargs):
+    if 'weights_only' not in kwargs:
+        kwargs['weights_only'] = False
+    return _original_torch_load(*args, **kwargs)
+
+torch.load = _torch_load_wrapper
 
 
 def get_index_path_from_model(sid):

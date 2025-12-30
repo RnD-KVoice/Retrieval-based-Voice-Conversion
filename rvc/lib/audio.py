@@ -58,7 +58,10 @@ def load_audio(file, sr):
         with open(file, "rb") as f:
             with BytesIO() as out:
                 audio2(f, out, "f32le", sr)
-                return np.frombuffer(out.getvalue(), np.float32).flatten()
+                audio = np.frombuffer(out.getvalue(), np.float32)
+                if len(audio.shape) == 1 and (len(audio) // sr) > sr * 10:
+                    audio = audio.reshape(-1, 2).mean(axis=1)
+                return audio
 
     except AttributeError:
         audio = file[1] / 32768.0

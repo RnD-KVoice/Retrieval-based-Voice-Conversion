@@ -38,7 +38,7 @@ def audio2(i, o, format, sr):
     if format == "f32le":
         format = "pcm_f32le"
 
-    resampler = av.AudioResampler(format="fltp", layout="mono", rate=sr)
+    resampler = av.AudioResampler(format="flt", layout="mono", rate=sr)
 
     ostream = out.add_stream(format)
     ostream.sample_rate = sr

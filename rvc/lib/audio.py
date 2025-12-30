@@ -45,8 +45,9 @@ def audio2(i, o, format, sr):
 
     for frame in inp.decode(audio=0):
         frame.pts = None
-        for p in ostream.encode(resampler.resample(frame)):
-            out.mux(p)
+        for resampled_frame in resampler.resample(frame):
+            for p in ostream.encode(resampled_frame):
+                out.mux(p)
 
     out.close()
     inp.close()

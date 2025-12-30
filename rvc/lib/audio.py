@@ -56,6 +56,7 @@ def audio2(i, o, format, sr):
 
 
 def load_audio(file, sr):
+    print(f"[DEBUG] load_audio called with sr={sr}")
     if not os.path.exists(file):
         raise RuntimeError(
             "You input a wrong audio path that does not exists, please fix it!"

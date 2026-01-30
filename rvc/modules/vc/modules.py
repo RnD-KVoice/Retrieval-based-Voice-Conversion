@@ -108,6 +108,7 @@ class VC:
         rms_mix_rate: float = 0.25,
         protect: float = 0.33,
         hubert_path: str | Path | None = None,
+        crepe_hop_length: int = 160,
     ):
         if hubert_path is None:
             hubert_path = os.getenv("hubert_path")
@@ -174,6 +175,7 @@ class VC:
                 self.version,
                 protect,
                 f0_file,
+                crepe_hop_length=crepe_hop_length,
             )
 
             tgt_sr = resample_sr if self.tgt_sr != resample_sr >= 16000 else self.tgt_sr

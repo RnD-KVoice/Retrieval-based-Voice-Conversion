@@ -59,7 +59,7 @@ def change_rms(data1, sr1, data2, sr2, rate):  # 1是输入音频，2是输出�
 
 
 class Pipeline(object):
-    def __init__(self, tgt_sr, config):
+    def __init__(self, tgt_sr, config, crepe_hop_length=160):
         self.x_pad, self.x_query, self.x_center, self.x_max, self.is_half = (
             config.x_pad,
             config.x_query,
@@ -69,6 +69,7 @@ class Pipeline(object):
         )
         self.sr = 16000  # hubert输入采样率
         self.window = 160  # 每帧点数
+        self.crepe_hop_length = crepe_hop_length
         self.t_pad = self.sr * self.x_pad  # 每条前后pad时间
         self.t_pad_tgt = tgt_sr * self.x_pad
         self.t_pad2 = self.t_pad * 2
@@ -86,6 +87,7 @@ class Pipeline(object):
         f0_method,
         filter_radius,
         inp_f0=None,
+        crepe_hop_length=None,
     ):
         global input_audio_path2wav
         time_step = self.window / self.sr * 1000
@@ -115,6 +117,7 @@ class Pipeline(object):
             if filter_radius > 2:
                 f0 = signal.medfilt(f0, 3)
         elif f0_method == "crepe":
+            hop = crepe_hop_length if crepe_hop_length is not None else self.crepe_hop_length
             model = "full"
             # Pick a batch size that doesn't cause memory errors on your gpu
             batch_size = 512
@@ -123,7 +126,7 @@ class Pipeline(object):
             f0, pd = torchcrepe.predict(
                 audio,
                 self.sr,
-                self.window,
+                hop,
                 f0_min,
                 f0_max,
                 model,
@@ -135,6 +138,14 @@ class Pipeline(object):
             f0 = torchcrepe.filter.mean(f0, 3)
             f0[pd < 0.1] = 0
             f0 = f0[0].cpu().numpy()
+            # Resample F0 to match expected p_len when hop differs from self.window
+            if hop != self.window and len(f0) > 0:
+                target_len = p_len
+                f0 = np.interp(
+                    np.linspace(0, len(f0) - 1, target_len),
+                    np.arange(len(f0)),
+                    f0,
+                )
         elif f0_method == "rmvpe":
             if not hasattr(self, "model_rmvpe"):
                 from rvc.lib.rmvpe import RMVPE
@@ -294,6 +305,7 @@ class Pipeline(object):
         version,
         protect,
         f0_file=None,
+        crepe_hop_length=None,
     ):
         if (
             file_index
@@ -356,6 +368,7 @@ class Pipeline(object):
                 f0_method,
                 filter_radius,
                 inp_f0,
+                crepe_hop_length=crepe_hop_length,
             )
             pitch = pitch[:p_len]
             pitchf = pitchf[:p_len]

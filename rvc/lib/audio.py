@@ -38,8 +38,13 @@ def audio2(i, o, format, sr):
     if format == "f32le":
         format = "pcm_f32le"
 
-    ostream = out.add_stream(format, channels=1)
+    ostream = out.add_stream(format)
     ostream.sample_rate = sr
+    try:
+        ostream.channels = 1
+    except AttributeError:
+        # Newer PyAV: channels is read-only, set layout instead
+        ostream.layout = "mono"
 
     for frame in inp.decode(audio=0):
         for p in ostream.encode(frame):
@@ -60,11 +65,10 @@ def load_audio(file, sr):
                 audio2(f, out, "f32le", sr)
                 return np.frombuffer(out.getvalue(), np.float32).flatten()
 
-    except AttributeError:
-        audio = file[1] / 32768.0
-        if len(audio.shape) == 2:
-            audio = np.mean(audio, -1)
-        return librosa.resample(audio, orig_sr=file[0], target_sr=16000)
-
     except Exception:
-        raise RuntimeError(traceback.format_exc())
+        # Fallback: use librosa if PyAV fails (e.g. newer av API)
+        try:
+            audio, _ = librosa.load(file, sr=sr, mono=True)
+            return audio
+        except Exception:
+            raise RuntimeError(traceback.format_exc())

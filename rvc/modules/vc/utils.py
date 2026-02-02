@@ -1,16 +1,9 @@
 import os
+from functools import partial
+
 import torch
 
 from fairseq import checkpoint_utils
-
-_original_torch_load = torch.load
-
-def _torch_load_wrapper(*args, **kwargs):
-    if 'weights_only' not in kwargs:
-        kwargs['weights_only'] = False
-    return _original_torch_load(*args, **kwargs)
-
-torch.load = _torch_load_wrapper
 
 
 def get_index_path_from_model(sid):
@@ -30,10 +23,19 @@ def get_index_path_from_model(sid):
 
 
 def load_hubert(config, hubert_path: str):
-    models, _, _ = checkpoint_utils.load_model_ensemble_and_task(
-        [hubert_path],
-        suffix="",
-    )
+    # PyTorch 2.6+ defaults to weights_only=True which breaks fairseq's
+    # internal torch.load calls (UnpicklingError).  Monkey-patch torch.load
+    # to force weights_only=False while loading the HuBERT checkpoint.
+    _original_torch_load = torch.load
+    torch.load = partial(_original_torch_load, weights_only=False)
+    try:
+        models, _, _ = checkpoint_utils.load_model_ensemble_and_task(
+            [hubert_path],
+            suffix="",
+        )
+    finally:
+        torch.load = _original_torch_load
+
     hubert_model = models[0]
     hubert_model = hubert_model.to(config.device)
     hubert_model = hubert_model.half() if config.is_half else hubert_model.float()
